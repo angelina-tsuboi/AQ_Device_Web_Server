@@ -149,6 +149,7 @@ if (!!window.EventSource) {
 </html>)rawliteral";
 
 void setup() {
+  Serial.println("Starting");
   Serial.begin(115200);
 
   // Set the device as a Station and Soft Access Point simultaneously
