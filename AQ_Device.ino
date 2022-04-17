@@ -314,9 +314,9 @@ void loop(){
 
     parentPath= databasePath + "/" + String(timestamp);
 
-    json.set(tempPath.c_str(), String(10));
-    json.set(humPath.c_str(), String(10));
-    json.set(presPath.c_str(), String(10/100.0F));
+    json.set(tempPath.c_str(), String(temperature));
+    json.set(humPath.c_str(), String(humidity));
+    json.set(presPath.c_str(), String(pressure));
     json.set(polPath.c_str(), String(air_quality));
     json.set(timePath, String(timestamp));
     Serial.printf("Set json... %s\n", Firebase.RTDB.setJSON(&fbdo, parentPath.c_str(), &json) ? "ok" : fbdo.errorReason().c_str());
