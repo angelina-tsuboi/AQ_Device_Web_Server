@@ -59,6 +59,9 @@ float humidity;
 float pressure;
 float gasResistance = 0;
 
+// MQ 135
+float air_quality;
+
 // Timer variables (send new readings every three minutes)
 unsigned long sendDataPrevMillis = 0;
 unsigned long timerDelay = 180000;
@@ -87,6 +90,9 @@ String processor(const String& var){
   else if(var == "PRESSURE"){
     return String(pressure);
   }
+  else if(var == "POLLUTION"){
+    return String(air_quality);
+  }
  else if(var == "GAS"){
     return String(gasResistance);
   }
@@ -112,11 +118,12 @@ const char index_html[] PROGMEM = R"rawliteral(
     .card.humidity { color: #17bebb; }
     .card.pressure { color: #3fca6b; }
     .card.gas { color: #d62246; }
+    .card.pollution { color: #f9c507; }
   </style>
 </head>
 <body>
   <div class="topnav">
-    <h3>BME680 WEB SERVER</h3>
+    <h3>OURA WEB SERVER</h3>
   </div>
   <div class="content">
     <div class="cards">
@@ -131,6 +138,9 @@ const char index_html[] PROGMEM = R"rawliteral(
       </div>
       <div class="card gas">
         <h4><i class="fas fa-wind"></i> GAS</h4><p><span class="reading"><span id="gas">%GAS%</span> K&ohm;</span></p>
+      </div>
+      <div class="card pollution">
+        <h4><i class="fas fa-smog"></i> POLLUTION</h4><p><span class="reading"><span id="pol">%POLLUTION%</span> PPM</span></p>
       </div>
     </div>
   </div>
@@ -154,6 +164,11 @@ if (!!window.EventSource) {
  source.addEventListener('temperature', function(e) {
   console.log("temperature", e.data);
   document.getElementById("temp").innerHTML = e.data;
+ }, false);
+
+ source.addEventListener('pollution', function(e) {
+  console.log("pollution", e.data);
+  document.getElementById("pol").innerHTML = e.data;
  }, false);
  
  source.addEventListener('humidity', function(e) {
@@ -249,7 +264,7 @@ void setup(){
 }
 
 void loop(){
-
+  MQ135 gasSensor = MQ135(34);
   // Send new readings to database
   if (Firebase.ready() && (millis() - sendDataPrevMillis > timerDelay || sendDataPrevMillis == 0)){
     sendDataPrevMillis = millis();
@@ -258,6 +273,9 @@ void loop(){
     timestamp = getTime();
     Serial.print ("time: ");
     Serial.println (timestamp);
+
+    // update sensor readings
+    air_quality = gasSensor.getPPM();
 
     parentPath= databasePath + "/" + String(timestamp);
 
