@@ -2,9 +2,12 @@
 #include "MQ135.h"
 #include <WiFi.h>
 #include <Wire.h>
+#include <SPI.h>
 #include "ESPAsyncWebServer.h"
 #include <Arduino.h>
 #include <Firebase_ESP_Client.h>
+#include <Adafruit_Sensor.h>
+#include "Adafruit_BME680.h"
 #include "time.h"
 
 // Provide the token generation process info.
@@ -22,6 +25,9 @@
 // Insert Authorized Email and Corresponding Password
 #define USER_EMAIL "test@gmail.com"
 #define USER_PASSWORD "testing123456"
+
+// BME680
+Adafruit_BME680 bme;
 
 // Insert RTDB URLefine the RTDB URL
 #define DATABASE_URL "https://rapid-e8c3a.firebaseio.com/"
@@ -44,6 +50,7 @@ String tempPath = "/temperature";
 String humPath = "/humidity";
 String presPath = "/pressure";
 String timePath = "/timestamp";
+String polPath = "/pollution";
 
 // Parent Node (to be updated in every loop)
 String parentPath;
@@ -79,7 +86,7 @@ void initWiFi() {
 }
 
 String processor(const String& var){
-  // getBME680Readings();
+  getBME680Readings();
   //Serial.println(var);
   if(var == "TEMPERATURE"){
     return String(temperature);
@@ -96,6 +103,23 @@ String processor(const String& var){
  else if(var == "GAS"){
     return String(gasResistance);
   }
+}
+
+void getBME680Readings(){
+  // Tell BME680 to begin measurement.
+  unsigned long endTime = bme.beginReading();
+  if (endTime == 0) {
+    Serial.println(F("Failed to begin reading :("));
+    return;
+  }
+  if (!bme.endReading()) {
+    Serial.println(F("Failed to complete reading :("));
+    return;
+  }
+  temperature = bme.temperature;
+  pressure = bme.pressure / 100.0;
+  humidity = bme.humidity;
+  gasResistance = bme.gas_resistance / 1000.0;
 }
 
 const char index_html[] PROGMEM = R"rawliteral(
@@ -245,6 +269,17 @@ void setup(){
   // Update database path
   databasePath = "/UsersData/" + uid + "/readings";
 
+   if (!bme.begin()) {
+    Serial.println(F("Could not find a valid BME680 sensor, check wiring!"));
+    while (1);
+  }
+  // Set up oversampling and filter initialization
+  bme.setTemperatureOversampling(BME680_OS_8X);
+  bme.setHumidityOversampling(BME680_OS_2X);
+  bme.setPressureOversampling(BME680_OS_4X);
+  bme.setIIRFilterSize(BME680_FILTER_SIZE_3);
+  bme.setGasHeater(320, 150); // 320*C for 150 ms
+
    // Handle Web Server
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send_P(200, "text/html", index_html, processor);
@@ -282,6 +317,7 @@ void loop(){
     json.set(tempPath.c_str(), String(10));
     json.set(humPath.c_str(), String(10));
     json.set(presPath.c_str(), String(10/100.0F));
+    json.set(polPath.c_str(), String(air_quality));
     json.set(timePath, String(timestamp));
     Serial.printf("Set json... %s\n", Firebase.RTDB.setJSON(&fbdo, parentPath.c_str(), &json) ? "ok" : fbdo.errorReason().c_str());
   }
