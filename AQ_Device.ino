@@ -28,7 +28,7 @@
 
 // LED pins
 #define PIN_BLUE    23 // GIOP23
-#define PIN_GREEN    15 // GIOP15
+#define PIN_GREEN    13 // GIOP13
 #define PIN_RED    2 // GIOP2
 
 // BME680
