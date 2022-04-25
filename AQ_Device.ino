@@ -26,6 +26,9 @@
 #define USER_EMAIL "test@gmail.com"
 #define USER_PASSWORD "testing123456"
 
+// LED pins
+#define PIN_RED    23 // GIOP23
+
 // BME680
 Adafruit_BME680 bme;
 
@@ -229,6 +232,10 @@ unsigned long getTime() {
 void setup(){
   Serial.begin(115200);
 
+  ledcAttachPin(PIN_RED, 0);
+
+  ledcSetup(0, 4000, 8); // 12 kHz PWM, 8-bit resolution
+
   // Initialize BME280 sensor
   initWiFi();
   configTime(0, 0, ntpServer);
@@ -300,6 +307,7 @@ void setup(){
 
 void loop(){
   MQ135 gasSensor = MQ135(34);
+  ledcWrite(0, 200);
   // Send new readings to database
   if (Firebase.ready() && (millis() - sendDataPrevMillis > timerDelay || sendDataPrevMillis == 0)){
     sendDataPrevMillis = millis();
